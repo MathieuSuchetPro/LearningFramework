@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from collection.buffer import AgentResult, StepResult
+from learning_frameworks.collection.buffer import AgentResult, StepResult
 
 
 class Callback(ABC):

@@ -1,11 +1,11 @@
 import torch
 
-from agent import Agent
-from collection.buffer import Buffer
-from collection.collection import Collection
-from eval.debug_eval import critic_only_eval, actor_only_eval
-from policies.continuous_policy import ContinuousPolicy
-from probe_envs.probe_envs import MultiDiscreteEnv
+from learning_frameworks.learning.PPO import PPO
+from learning_frameworks.collection.buffer import Buffer
+from learning_frameworks.collection.collection import Collection
+from learning_frameworks.eval.debug_eval import critic_only_eval, actor_only_eval
+from learning_frameworks.policies.continuous_policy import ContinuousPolicy
+from learning_frameworks.probe_envs.probe_envs import MultiDiscreteEnv
 
 if __name__ == "__main__":
     def create_env():
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         critic_lr=1e-4,
     )
 
-    agent = Agent(
+    agent = PPO(
         policy=policy,
         device=torch.device("cpu"),
 

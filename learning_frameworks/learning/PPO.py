@@ -1,14 +1,14 @@
 import warnings
-from typing import List, Union, Dict, Type
+from typing import Union, Dict
 
 import numpy as np
 import torch.nn
 from torch.utils.tensorboard import SummaryWriter
 
-from collection.buffer import Buffer
-from policies.policy import Policy
+from learning_frameworks.collection.buffer import Buffer
+from learning_frameworks.policies.policy import Policy
 
-class Agent:
+class PPO:
     def __init__(
             self,
 
@@ -247,7 +247,7 @@ class Agent:
         self._cnt_every_n += 1
 
         if self._cnt_every_n >= self.save_every_n:
-            self.save("TenthTry/models/" + self.run_name)
+            self.save("models/" + self.run_name)
             self._cnt_every_n = 0
 
     def update_env_logs(self, logs: Dict[str, Union[float, int]]):

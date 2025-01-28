@@ -1,9 +1,8 @@
 from abc import abstractmethod
-from typing import NamedTuple, Tuple, Any, Union, List
+from typing import NamedTuple, Tuple, List
 
 import numpy as np
 import torch
-from numpy import ndarray, dtype
 
 
 class StepResult(NamedTuple):

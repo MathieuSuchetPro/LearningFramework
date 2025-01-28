@@ -3,13 +3,13 @@ from typing import Callable, Dict
 import torch
 from gymnasium import Env
 
-from agent import Agent
-from eval.eval import print_report
+from learning_frameworks.eval.eval import print_report
+from learning_frameworks.learning.PPO import PPO
 
 
 def critic_only_eval(
         env_fn: Callable[[], Env],
-        agent: Agent,
+        agent: PPO,
         n_episodes: int = 5
 ) -> Dict[str, float]:
     env = env_fn()
@@ -60,7 +60,7 @@ def critic_only_eval(
 
 def actor_only_eval(
     env_fn: Callable[[], Env],
-    agent: Agent,
+    agent: PPO,
     n_episodes: int = 5
 ) -> Dict[str, torch.Tensor]:
     env = env_fn()

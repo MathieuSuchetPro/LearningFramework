@@ -1,11 +1,11 @@
 import torch
 from gymnasium import make
 
-from agent import Agent
-from collection.buffer import Buffer
-from collection.collection import Collection
-from eval.eval import run_eval
-from policies.continuous_policy import ContinuousPolicy
+from learning_frameworks.learning.PPO import PPO
+from learning_frameworks.collection.buffer import Buffer
+from learning_frameworks.collection.collection import Collection
+from learning_frameworks.eval.eval import run_eval
+from learning_frameworks.policies.continuous_policy import ContinuousPolicy
 
 if __name__ == "__main__":
 
@@ -35,7 +35,7 @@ if __name__ == "__main__":
         critic_lr=1e-4,
     )
 
-    agent = Agent(
+    agent = PPO(
         policy=policy,
         device=torch.device("cpu"),
 
@@ -60,9 +60,9 @@ if __name__ == "__main__":
     )
 
     try:
-        print(f"Trying to load {'TenthTry/models/' + run_name}")
+        print(f"Trying to load {'models/' + run_name}")
         agent.load("TenthTry/models/" + run_name)
-        print(f"Loaded model {'TenthTry/models/' + run_name} successfully")
+        print(f"Loaded model {'models/' + run_name} successfully")
     except FileNotFoundError as e:
         print(e)
         print("An error occurred doing agent loading, ignoring")
@@ -98,6 +98,6 @@ if __name__ == "__main__":
             buffer.clear()
 
         except KeyboardInterrupt:
-            agent.save("TenthTry/models/" + run_name)
+            agent.save("models/" + run_name)
 
 

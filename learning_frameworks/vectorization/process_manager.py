@@ -6,9 +6,9 @@ import numpy as np
 import torch
 import tqdm
 
-from agent import Agent
-from collection.buffer import Trajectory, StepResult, AgentResult, BaseBuffer
-from vectorization.env_process import _process
+from learning_frameworks.collection.buffer import Trajectory, StepResult, AgentResult, BaseBuffer
+from learning_frameworks.learning.agent import Agent
+from learning_frameworks.vectorization.env_process import _process
 
 
 class ProcessManager:

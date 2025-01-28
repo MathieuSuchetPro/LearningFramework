@@ -4,12 +4,12 @@ import numpy as np
 import torch
 from gymnasium import Env
 
-from agent import Agent
+from learning_frameworks.learning.PPO import PPO
 
 
 def run_eval(
         env_fn: Callable[[], Env],
-        agent: Agent,
+        agent: PPO,
 
         n_episodes: int = 5,
         _print_report: bool = False

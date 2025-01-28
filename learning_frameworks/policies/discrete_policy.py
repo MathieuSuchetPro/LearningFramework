@@ -2,7 +2,7 @@ from typing import Tuple
 
 import torch
 
-from policies.policy import Policy
+from learning_frameworks.policies.policy import Policy
 
 
 class DiscretePolicy(Policy):

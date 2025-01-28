@@ -5,10 +5,10 @@ import torch
 from gymnasium import Env
 from tqdm import tqdm
 
-from agent import Agent
-from collection.buffer import AgentResult, BaseBuffer
-from collection.callbacks import Callback, EmptyCallback
-from vectorization.process_manager import ProcessManager
+from learning_frameworks.collection.buffer import BaseBuffer, AgentResult
+from learning_frameworks.collection.callbacks import Callback, EmptyCallback
+from learning_frameworks.learning.PPO import PPO
+from learning_frameworks.vectorization.process_manager import ProcessManager
 
 
 # TODO: Make the metric collection system
@@ -18,7 +18,7 @@ class BaseCollection:
     Base class for collection classes
     """
 
-    def __init__(self, env_fn: Callable[[], Env], agent: Agent, callback: Optional[Callback], buffer: BaseBuffer):
+    def __init__(self, env_fn: Callable[[], Env], agent: PPO, callback: Optional[Callback], buffer: BaseBuffer):
         """
         :param env_fn: Function to create an environment
         :param agent: Agent to use
@@ -45,7 +45,7 @@ class BaseCollection:
 
 
 class Collection(BaseCollection):
-    def __init__(self, env_fn: Callable[[], Env], agent: Agent, callback: Optional[Callback], buffer: BaseBuffer,
+    def __init__(self, env_fn: Callable[[], Env], agent: PPO, callback: Optional[Callback], buffer: BaseBuffer,
                  n_proc: int = 1):
         super().__init__(env_fn, agent, callback, buffer)
         self.n_proc = n_proc
