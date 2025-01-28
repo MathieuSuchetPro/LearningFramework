@@ -5,8 +5,8 @@ import numpy as np
 import torch.nn
 from torch.utils.tensorboard import SummaryWriter
 
-from TenthTry.buffer import Buffer
-from TenthTry.policies.policy import Policy
+from collection.buffer import Buffer
+from policies.policy import Policy
 
 class Agent:
     def __init__(

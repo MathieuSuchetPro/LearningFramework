@@ -2,7 +2,7 @@ from typing import Tuple
 
 import torch
 
-from TenthTry.policies.policy import Policy
+from policies.policy import Policy
 
 
 class DiscretePolicy(Policy):

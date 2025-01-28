@@ -6,9 +6,9 @@ import numpy as np
 import torch
 import tqdm
 
-from TenthTry.agent import Agent
-from TenthTry.buffer import Trajectory, StepResult, AgentResult, BaseBuffer
-from TenthTry.vectorization.env_process import _process
+from agent import Agent
+from collection.buffer import Trajectory, StepResult, AgentResult, BaseBuffer
+from vectorization.env_process import _process
 
 
 class ProcessManager:

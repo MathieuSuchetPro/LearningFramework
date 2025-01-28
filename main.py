@@ -1,11 +1,11 @@
 import torch
 from gymnasium import make
 
-from TenthTry.agent import Agent
-from TenthTry.buffer import Buffer
-from TenthTry.collection.collection import Collection
-from TenthTry.eval.eval import run_eval
-from TenthTry.policies.continuous_policy import ContinuousPolicy
+from agent import Agent
+from collection.buffer import Buffer
+from collection.collection import Collection
+from eval.eval import run_eval
+from policies.continuous_policy import ContinuousPolicy
 
 if __name__ == "__main__":
 

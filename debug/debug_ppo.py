@@ -1,12 +1,11 @@
 import torch
 
-from TenthTry.agent import Agent
-from TenthTry.buffer import Buffer
-from TenthTry.collection.collection import Collection
-from TenthTry.eval.debug_eval import critic_only_eval, actor_only_eval
-from TenthTry.policies.multi_discrete_policy import MultiDiscretePolicy
-from TenthTry.policies.continuous_policy import ContinuousPolicy
-from TenthTry.probe_envs.probe_envs import MultiDiscreteEnv
+from agent import Agent
+from collection.buffer import Buffer
+from collection.collection import Collection
+from eval.debug_eval import critic_only_eval, actor_only_eval
+from policies.continuous_policy import ContinuousPolicy
+from probe_envs.probe_envs import MultiDiscreteEnv
 
 if __name__ == "__main__":
     def create_env():

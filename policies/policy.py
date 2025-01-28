@@ -1,8 +1,8 @@
 import json
 import os
 import pathlib
-from abc import ABC, abstractmethod
-from typing import Iterable, List, Tuple
+from abc import abstractmethod
+from typing import List, Tuple
 
 import numpy as np
 import torch

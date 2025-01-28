@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from gymnasium import Env
 
-from TenthTry.agent import Agent
+from agent import Agent
 
 
 def run_eval(

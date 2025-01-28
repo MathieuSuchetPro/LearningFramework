@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Union, List
 
-from TenthTry.buffer import AgentResult, StepResult
+from collection.buffer import AgentResult, StepResult
 
 
 class Callback(ABC):

@@ -3,7 +3,7 @@ from typing import Tuple, List
 import torch
 from torch import nn
 
-from TenthTry.policies.policy import Policy
+from policies.policy import Policy
 
 class MapContinuousToAction(nn.Module):
     """

@@ -5,10 +5,10 @@ import torch
 from gymnasium import Env
 from tqdm import tqdm
 
-from TenthTry.agent import Agent
-from TenthTry.buffer import AgentResult, BaseBuffer
-from TenthTry.collection.callbacks import Callback, EmptyCallback
-from TenthTry.vectorization.process_manager import ProcessManager
+from agent import Agent
+from collection.buffer import AgentResult, BaseBuffer
+from collection.callbacks import Callback, EmptyCallback
+from vectorization.process_manager import ProcessManager
 
 
 # TODO: Make the metric collection system

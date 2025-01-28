@@ -1,12 +1,10 @@
 from typing import Callable, Dict
 
-import numpy as np
 import torch
 from gymnasium import Env
 
-from TenthTry.agent import Agent
-
-from TenthTry.eval.eval import print_report
+from agent import Agent
+from eval.eval import print_report
 
 
 def critic_only_eval(

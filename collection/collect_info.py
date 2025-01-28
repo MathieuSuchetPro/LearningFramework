@@ -5,9 +5,9 @@ import torch
 from gymnasium import Env
 from tqdm import tqdm
 
-from TenthTry.agent import Agent
-from TenthTry.buffer import Buffer, AgentResult, StepResult
-from TenthTry.vectorization.process_manager import ProcessManager
+from agent import Agent
+from collection.buffer import Buffer, AgentResult, StepResult
+from vectorization.process_manager import ProcessManager
 
 
 def collect_buffer(buffer: Buffer, agent: Agent, env_fn: Callable[[], Env], n_proc: int):
