@@ -5,6 +5,7 @@ import torch
 from gymnasium import Env
 from tqdm import tqdm
 
+from learning_frameworks.action_formatters.base_action_formatter import BaseActionFormatter
 from learning_frameworks.collection.buffer import BaseBuffer, AgentResult
 from learning_frameworks.collection.callbacks import Callback, EmptyCallback
 from learning_frameworks.learning.PPO import PPO
@@ -18,17 +19,19 @@ class BaseCollection:
     Base class for collection classes
     """
 
-    def __init__(self, env_fn: Callable[[], Env], agent: PPO, callback: Optional[Callback], buffer: BaseBuffer):
+    def __init__(self, env_fn: Callable[[], Env], agent: PPO, callback: Optional[Callback], buffer: BaseBuffer, action_formatter: BaseActionFormatter):
         """
         :param env_fn: Function to create an environment
         :param agent: Agent to use
         :param callback: Callback
+        :param action_formatter: How to format action for the env
         :param buffer: Buffer to fill
         """
         self.env_fn = env_fn
         self.agent = agent
         self.callback = EmptyCallback() if not callback else callback
         self.buffer = buffer
+        self.action_formatter = action_formatter
 
     @abstractmethod
     def collect(self):
@@ -45,9 +48,8 @@ class BaseCollection:
 
 
 class Collection(BaseCollection):
-    def __init__(self, env_fn: Callable[[], Env], agent: PPO, callback: Optional[Callback], buffer: BaseBuffer,
-                 n_proc: int = 1):
-        super().__init__(env_fn, agent, callback, buffer)
+    def __init__(self, env_fn: Callable[[], Env], agent: PPO, callback: Optional[Callback], buffer: BaseBuffer, action_formatter: BaseActionFormatter, n_proc: int = 1):
+        super().__init__(env_fn, agent, callback, buffer, action_formatter)
         self.n_proc = n_proc
 
         self.process_manager = ProcessManager(n_proc, env_fn, agent, buffer)
@@ -69,6 +71,7 @@ class Collection(BaseCollection):
             while not self.buffer.full():
                 actions, entropies, log_probs = self.agent.act(obs, deterministic=False)
                 actions = actions.to(dtype=torch.float)
+                actions = self.action_formatter.format_actions(actions)
                 entropies = entropies.detach()
                 log_probs = log_probs.detach()
 

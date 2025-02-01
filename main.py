@@ -1,32 +1,34 @@
 import torch
 from gymnasium import make
 
+from learning_frameworks.action_formatters.base_type_formatters import IntActionFormatter
+from learning_frameworks.collection.collect_info import render_loop
 from learning_frameworks.learning.PPO import PPO
 from learning_frameworks.collection.buffer import Buffer
 from learning_frameworks.collection.collection import Collection
 from learning_frameworks.eval.eval import run_eval
-from learning_frameworks.policies.continuous_policy import ContinuousPolicy
+from learning_frameworks.policies.discrete_policy import DiscretePolicy
 
 if __name__ == "__main__":
 
-    env_id = "LunarLander-v2"
+    env_id = "Acrobot-v1"
 
     def create_env():
-        return make(env_id, continuous=True)
+        return make(env_id)
 
     env = create_env()
 
     input_shape = env.observation_space.shape[0]
-    output_shape = env.action_space.shape[0]
+    output_shape = env.action_space.n
 
     buffer_size = 10_000
 
     run_name = env_id + "_test_continuous_10k_batch_no_ent_loss"
 
 
-    policy = ContinuousPolicy(
+    policy = DiscretePolicy(
         input_size=input_shape,
-        output_size=2,
+        output_size=output_shape,
 
         actor_layer_sizes=[64, 64],
         critic_layer_sizes=[128, 128],
@@ -61,7 +63,7 @@ if __name__ == "__main__":
 
     try:
         print(f"Trying to load {'models/' + run_name}")
-        agent.load("TenthTry/models/" + run_name)
+        agent.load("models/" + run_name)
         print(f"Loaded model {'models/' + run_name} successfully")
     except FileNotFoundError as e:
         print(e)
@@ -73,31 +75,39 @@ if __name__ == "__main__":
 
     n_iterations = 200
 
-    collection = Collection(create_env, agent, None, buffer, n_proc)
+    action_formatter = IntActionFormatter()
 
-    for _ in range(n_iterations):
-        try:
-            metrics = collection.collect()
+    render = False
 
-            mean_ep_len = 0
-            for metric in metrics:
-                mean_ep_len += metric["mean_episode_len"]
+    if render:
+        render_loop(agent, lambda: make(env_id, render_mode="human"))
+    else:
+        collection = Collection(create_env, agent, None, buffer, action_formatter, n_proc)
 
-            mean_ep_len /= n_proc
+        for _ in range(n_iterations):
 
-            agent.update_env_logs({
-                "mean_episode_len": mean_ep_len
-            })
+            try:
+                metrics = collection.collect()
 
-            agent.learn(buffer)
+                mean_ep_len = 0
+                for metric in metrics:
+                    mean_ep_len += metric["mean_episode_len"]
 
-            print("Running eval...")
-            run_eval(create_env, agent, _print_report=True)
-            print("End of eval")
+                mean_ep_len /= n_proc
 
-            buffer.clear()
+                agent.update_env_logs({
+                    "mean_episode_len": mean_ep_len
+                })
 
-        except KeyboardInterrupt:
-            agent.save("models/" + run_name)
+                agent.learn(buffer)
+
+                print("Running eval...")
+                run_eval(create_env, agent, _print_report=True)
+                print("End of eval")
+
+                buffer.clear()
+
+            except KeyboardInterrupt:
+                agent.save("models/" + run_name)
 
 

@@ -60,24 +60,24 @@ class ProcessManager:
         for i, to_proc_remote in enumerate(self.to_proc_remotes):
             obs, info = to_proc_remote.recv()
 
-            all_obs[i] = torch.FloatTensor(obs)
+            all_obs[i] = torch.tensor(obs, dtype=torch.float)
             all_info.append(info)
 
         self._last_obs = all_obs
 
         return all_obs, np.asarray(all_info)
 
-    def step(self, agent_result: AgentResult) -> Tuple[StepResult, torch.FloatTensor]:
+    def step(self, agent_result: AgentResult) -> Tuple[StepResult, torch.Tensor]:
         n_actions = np.shape(agent_result.actions)[0]
         if n_actions != len(self.procs):
             raise IndexError(f"Expecting {len(self.procs)} actions, got {n_actions} actions")
 
-        all_next_obs = torch.FloatTensor(torch.zeros(size=(self.n_proc, self.obs_size)))
-        all_obs = torch.FloatTensor(torch.zeros(size=(self.n_proc, self.obs_size)))
-        all_rewards = torch.FloatTensor(torch.zeros(size=(self.n_proc, 1)))
-        all_done = torch.ShortTensor(torch.zeros(size=(self.n_proc, 1), dtype=torch.short))
+        all_next_obs = torch.zeros(size=(self.n_proc, self.obs_size), dtype=torch.float)
+        all_obs = torch.zeros(size=(self.n_proc, self.obs_size), dtype=torch.float)
+        all_rewards = torch.zeros(size=(self.n_proc, 1), dtype=torch.float)
+        all_done = torch.zeros(size=(self.n_proc, 1), dtype=torch.short)
 
-        all_reset_next_obs = torch.FloatTensor(torch.zeros(size=(self.n_proc, self.obs_size)))
+        all_reset_next_obs = torch.zeros(size=(self.n_proc, self.obs_size), dtype=torch.float)
 
         for i, to_proc_remote in enumerate(self.to_proc_remotes):
             to_proc_remote.send({"name": "step", "actions": agent_result.actions[i].detach().numpy()})
@@ -85,11 +85,11 @@ class ProcessManager:
         for i, to_proc_remote in enumerate(self.to_proc_remotes):
             next_obs, r, terminal, truncated, info, reset_next_obs, reset_info = to_proc_remote.recv()
 
-            next_obs = torch.FloatTensor([next_obs])
-            r = torch.FloatTensor([r])
-            terminal = torch.BoolTensor([terminal])
-            truncated = torch.BoolTensor([truncated])
-            reset_next_obs = torch.FloatTensor([reset_next_obs])
+            next_obs = torch.tensor(next_obs, dtype=torch.float)
+            r = torch.tensor([r], dtype=torch.float)
+            terminal = torch.tensor([terminal], dtype=torch.bool)
+            truncated = torch.tensor([truncated], dtype=torch.bool)
+            reset_next_obs = torch.tensor(reset_next_obs, dtype=torch.float)
 
             done = torch.logical_or(terminal, truncated)
 
@@ -104,19 +104,18 @@ class ProcessManager:
             all_reset_next_obs[i] = reset_next_obs
 
             current_step_result = StepResult(
-                observations=torch.FloatTensor(all_obs[i]),
-                rewards=torch.FloatTensor(all_rewards[i]),
-                done=torch.ShortTensor(all_done[i]),
-                next_observations=torch.FloatTensor(all_next_obs[i])
+                observations=all_obs[i],
+                rewards=all_rewards[i],
+                done=all_done[i],
+                next_observations=all_next_obs[i]
             )
 
             self.trajectories[i].add(current_step_result,
                                      AgentResult(
-                                         actions=torch.FloatTensor(agent_result.actions[i]),
-                                         entropies=torch.FloatTensor(agent_result.entropies[i]),
-                                         log_probs=torch.FloatTensor(agent_result.log_probs[i])
-                                     )
-                                     )
+                                         actions=agent_result.actions[i],
+                                         entropies=agent_result.entropies[i],
+                                         log_probs=agent_result.log_probs[i]
+                                     ))
 
             if done:
                 self.buffer.concat(self.trajectories[i])

@@ -6,16 +6,16 @@ import torch
 
 
 class StepResult(NamedTuple):
-    observations: torch.FloatTensor
-    rewards: torch.FloatTensor
-    done: torch.ShortTensor
-    next_observations: torch.FloatTensor
+    observations: torch.Tensor
+    rewards: torch.Tensor
+    done: torch.Tensor
+    next_observations: torch.Tensor
 
 
 class AgentResult(NamedTuple):
-    actions: torch.FloatTensor
-    entropies: torch.FloatTensor
-    log_probs: torch.FloatTensor
+    actions: torch.Tensor
+    entropies: torch.Tensor
+    log_probs: torch.Tensor
 
 
 class BaseBuffer:
@@ -40,14 +40,14 @@ class BaseBuffer:
 
     @abstractmethod
     def init_buffers(self) -> Tuple[
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.ShortTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor
     ]:
         """
         Allocates the memory for the buffers
@@ -65,14 +65,14 @@ class BaseBuffer:
 
     @abstractmethod
     def get_batches(self, batch_size: int) -> Tuple[
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.ShortTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.IntTensor
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        List[torch.Tensor]
     ]:
         """
         Separate the buffers into batches
@@ -98,7 +98,7 @@ class BaseBuffer:
         pass
 
     @abstractmethod
-    def add_values(self, values: torch.FloatTensor) -> None:
+    def add_values(self, values: torch.Tensor) -> None:
         """
         Adds values to the value buffer
         :param values: Values to add
@@ -115,18 +115,27 @@ class BaseBuffer:
 
 
 class Trajectory(BaseBuffer):
-    def concat(self, buffer: "BaseBuffer") -> None:
+    def get_batches(self, batch_size: int) -> Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        List[torch.Tensor]
+    ]:
         pass
 
     def init_buffers(self) -> Tuple[
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.ShortTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor
     ]:
         states = torch.FloatTensor(size=(self.buffer_size, self.observation_size))
         actions = torch.FloatTensor(size=(self.buffer_size, self.actions_size))
@@ -138,6 +147,10 @@ class Trajectory(BaseBuffer):
         log_probs = torch.FloatTensor(size=(self.buffer_size, 1))
 
         return states, actions, rewards, dones, next_states, values, entropies, log_probs
+
+    def concat(self, buffer: "BaseBuffer") -> None:
+        pass
+
 
     def full(self) -> bool:
         return self.cnt_i >= self.buffer_size
@@ -155,19 +168,7 @@ class Trajectory(BaseBuffer):
         self.cnt_i = 0
         self.value_i = 0
 
-    def get_batches(self, batch_size: int) -> Tuple[
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.ShortTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.IntTensor
-    ]:
-        pass
-
-    def add_values(self, values: torch.FloatTensor) -> None:
+    def add_values(self, values: torch.Tensor) -> None:
         values_ = values.squeeze()
         self.values[self.value_i:self.value_i + values.shape[0]] = values_
         self.value_i += values_.shape[0]
@@ -188,15 +189,34 @@ class Trajectory(BaseBuffer):
 
 
 class Buffer(BaseBuffer):
+
+
+    def get_batches(self, batch_size: int) -> Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        List[torch.Tensor]
+    ]:
+        batch_start = torch.arange(0, self.cnt_i, batch_size)
+        indices = torch.arange(0, self.cnt_i, 1)
+        np.random.shuffle(indices.numpy())
+        batches = [indices[i:i + batch_size] for i in batch_start]
+
+        return self.states, self.actions, self.rewards, self.dones, self.values, self.entropies, self.log_probs, batches
+
     def init_buffers(self) -> Tuple[
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.ShortTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor
     ]:
         states = torch.FloatTensor(size=(self.buffer_size, self.observation_size))
         actions = torch.FloatTensor(size=(self.buffer_size, self.actions_size))
@@ -225,23 +245,6 @@ class Buffer(BaseBuffer):
         self.cnt_i = 0
         self.value_i = 0
 
-    def get_batches(self, batch_size: int) -> Tuple[
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.ShortTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        torch.FloatTensor,
-        List
-    ]:
-        batch_start = torch.arange(0, self.cnt_i, batch_size)
-        indices = torch.arange(0, self.cnt_i, 1)
-        np.random.shuffle(indices.numpy())
-        batches = [indices[i:i + batch_size] for i in batch_start]
-
-        return self.states, self.actions, self.rewards, self.dones, self.values, self.entropies, self.log_probs, batches
-
     def add(self, step_result: StepResult, agent_result: AgentResult):
         pass
 
@@ -260,6 +263,6 @@ class Buffer(BaseBuffer):
 
         self.cnt_i += end_i
 
-    def add_values(self, values: torch.FloatTensor):
+    def add_values(self, values: torch.Tensor):
         self.values[self.value_i:self.value_i + values.shape[0]] = values
         self.value_i += values.shape[0]

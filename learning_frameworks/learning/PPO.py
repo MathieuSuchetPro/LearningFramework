@@ -6,33 +6,15 @@ import torch.nn
 from torch.utils.tensorboard import SummaryWriter
 
 from learning_frameworks.collection.buffer import Buffer
+from learning_frameworks.learning.agent import Agent
 from learning_frameworks.policies.policy import Policy
 
-class PPO:
-    def __init__(
-            self,
-
-            policy: Policy,
-
-            policy_max_grad_norm: float,
-            critic_max_grad_norm: float,
-
-            ent_coef: float,
-            critic_loss_coef: float,
-
-            gae_lambda: float,
-            gae_gamma: float,
-
-            ppo_batch_size: int,
-            ppo_minibatch_size: int,
-            ppo_policy_clip: float,
-            ppo_epochs: int,
-
-            device: torch.device,
-            save_every_n: int,
-            run_name: str
-    ):
-        self.policy = policy
+class PPO(Agent):
+    def __init__(self, policy: Policy, policy_max_grad_norm: float, critic_max_grad_norm: float, ent_coef: float,
+                 critic_loss_coef: float, gae_lambda: float, gae_gamma: float, ppo_batch_size: int,
+                 ppo_minibatch_size: int, ppo_policy_clip: float, ppo_epochs: int, device: torch.device,
+                 save_every_n: int, run_name: str):
+        super().__init__(policy)
 
         self.gae_lambda = gae_lambda
         self.gae_gamma = gae_gamma
@@ -50,7 +32,7 @@ class PPO:
 
         self.device = device
         self.run_name = run_name
-        self.writer = SummaryWriter("TenthTry/logs/" + run_name)
+        self.writer = SummaryWriter("logs/" + run_name)
 
         self.save_every_n = save_every_n
         self._cnt_every_n = 0
@@ -60,9 +42,6 @@ class PPO:
 
         self.policy_max_grad_norm = policy_max_grad_norm
         self.critic_max_grad_norm = critic_max_grad_norm
-
-    def act(self, obs, deterministic):
-        return self.policy.act(obs, deterministic)
 
     def compute_advantages(self, values, rewards, dones):
         advantages = torch.FloatTensor(torch.zeros(size=(1, len(values))))
