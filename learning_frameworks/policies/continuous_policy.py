@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Callable
 
 import torch
 from torch import nn
@@ -26,20 +26,20 @@ class MapContinuousToAction(nn.Module):
         return x[..., :n], x[..., n:] * self.m + self.b
 
 class ContinuousPolicy(Policy):
-    def __init__(self, input_size: int, output_size: int, actor_layer_sizes: List[int], critic_layer_sizes: List[int],
-                 actor_lr: float, critic_lr: float, var_min: float = 0.1, var_max: int = 1, *args, **kwargs):
-        super().__init__(input_size, output_size * 2, actor_layer_sizes, critic_layer_sizes, actor_lr, critic_lr, *args,
-                         **kwargs)
+    def __init__(self, input_size: int, output_size: int, layer_sizes: List[int],
+                 activation_fn: Callable[[], torch.nn.Module], learning_rate: float, var_min: float = 0.1,
+                 var_max: int = 1, *args, **kwargs):
+        super().__init__(input_size, output_size, layer_sizes, activation_fn, learning_rate, *args, **kwargs)
         self.var_min = var_min
         self.var_max = var_max
 
         self.map_params = MapContinuousToAction(self.var_min, self.var_max)
 
-    def actor_forward(self, input_) -> torch.Tensor:
-        return self.map_params(torch.tanh(super().actor_forward(input_)))
+    def forward(self, input_) -> torch.Tensor:
+        return self.map_params(torch.tanh(super().forward(input_)))
 
     def act(self, input_, deterministic: bool) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        fw_mean, fw_std = self.actor_forward(input_)
+        fw_mean, fw_std = self.forward(input_)
 
         if deterministic:
             return fw_mean, torch.zeros(size=(self.output_size // 2, 1)), torch.ones(size=(self.output_size // 2, 1))
@@ -48,13 +48,11 @@ class ContinuousPolicy(Policy):
             actions = distrib.sample()
             return actions, distrib.entropy().sum(-1), distrib.log_prob(actions).sum(-1)
 
-
-
-    def get_backprop_data(self, observations, actions) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        fw_mean, fw_std = self.actor_forward(observations)
+    def get_backprop_data(self, observations, actions) -> Tuple[torch.Tensor, torch.Tensor]:
+        fw_mean, fw_std = self.forward(observations)
         distrib = torch.distributions.Normal(loc=fw_mean, scale=fw_std)
 
-        return distrib.entropy().sum(-1), distrib.log_prob(actions).sum(-1), self.critic_forward(observations)
+        return distrib.entropy().sum(-1), distrib.log_prob(actions).sum(-1)
 
     @property
     def n_actions(self):

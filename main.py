@@ -8,6 +8,7 @@ from learning_frameworks.collection.buffer import Buffer
 from learning_frameworks.collection.collection import Collection
 from learning_frameworks.eval.eval import run_eval
 from learning_frameworks.policies.discrete_policy import DiscretePolicy
+from learning_frameworks.value_estimators.value_estimator import ValueEstimator
 
 if __name__ == "__main__":
 
@@ -30,15 +31,23 @@ if __name__ == "__main__":
         input_size=input_shape,
         output_size=output_shape,
 
-        actor_layer_sizes=[64, 64],
-        critic_layer_sizes=[128, 128],
+        layer_sizes=[64, 64],
+        activation_fn=lambda: torch.nn.ReLU(),
+        learning_rate=1e-4,
+    )
 
-        actor_lr=1e-4,
-        critic_lr=1e-4,
+    value_estimator = ValueEstimator(
+        input_size=input_shape,
+        output_size=1,
+
+        layer_sizes=[128, 128],
+        activation_fn=lambda: torch.nn.ReLU(),
+        learning_rate=1e-4
     )
 
     agent = PPO(
         policy=policy,
+        value_estimator=value_estimator,
         device=torch.device("cpu"),
 
         ppo_batch_size=buffer_size // 5,

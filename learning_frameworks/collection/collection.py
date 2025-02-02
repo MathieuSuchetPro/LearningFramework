@@ -89,7 +89,7 @@ class Collection(BaseCollection):
                 progress_bar.update(self.buffer.cnt_i - last_buffer_size)
                 last_buffer_size = self.buffer.cnt_i
 
-            values = self.agent.policy.critic_forward(self.buffer.states)
+            values = self.agent.value_estimator(self.buffer.states)
             self.buffer.add_values(values.detach())
 
             progress_bar.close()

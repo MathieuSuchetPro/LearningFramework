@@ -1,3 +1,4 @@
+import pathlib
 import warnings
 from typing import Union, Dict
 
@@ -8,13 +9,32 @@ from torch.utils.tensorboard import SummaryWriter
 from learning_frameworks.collection.buffer import Buffer
 from learning_frameworks.learning.agent import Agent
 from learning_frameworks.policies.policy import Policy
+from learning_frameworks.value_estimators.value_estimator import ValueEstimator
+
 
 class PPO(Agent):
-    def __init__(self, policy: Policy, policy_max_grad_norm: float, critic_max_grad_norm: float, ent_coef: float,
-                 critic_loss_coef: float, gae_lambda: float, gae_gamma: float, ppo_batch_size: int,
-                 ppo_minibatch_size: int, ppo_policy_clip: float, ppo_epochs: int, device: torch.device,
-                 save_every_n: int, run_name: str):
-        super().__init__(policy)
+    def __init__(
+            self,
+            policy: Policy,
+            value_estimator: ValueEstimator,
+
+            policy_max_grad_norm: float,
+            critic_max_grad_norm: float,
+
+            ent_coef: float,
+            critic_loss_coef: float,
+
+            gae_lambda: float,
+            gae_gamma: float,
+
+            ppo_batch_size: int,
+            ppo_minibatch_size: int,
+            ppo_policy_clip: float,
+            ppo_epochs: int,
+
+            device: torch.device,
+            save_every_n: int, run_name: str):
+        super().__init__(policy, value_estimator)
 
         self.gae_lambda = gae_lambda
         self.gae_gamma = gae_gamma
@@ -44,7 +64,7 @@ class PPO(Agent):
         self.critic_max_grad_norm = critic_max_grad_norm
 
     def compute_advantages(self, values, rewards, dones):
-        advantages = torch.FloatTensor(torch.zeros(size=(1, len(values))))
+        advantages = torch.zeros(size=(1, len(values))).to(self.device)
         last_advantage = 0
 
         last_value = values[-1]
@@ -80,10 +100,10 @@ class PPO(Agent):
 
         # Save parameters before computing any updates.
         policy_before = torch.nn.utils.parameters_to_vector(
-            self.policy.actor.parameters()
+            self.policy.nn.parameters()
         ).cpu()
         critic_before = torch.nn.utils.parameters_to_vector(
-            self.policy.critic.parameters()
+            self.value_estimator.nn.parameters()
         ).cpu()
 
         for epoch in range(self.ppo_epochs):
@@ -96,34 +116,35 @@ class PPO(Agent):
             minibatch_ratio = self.ppo_minibatch_size / self.ppo_batch_size
 
             for batch in batches:
-                batch_states = states_arr[batch]
-                batch_actions = actions_arr[batch]
-                batch_rewards = rewards_arr[batch]
+                batch_states = states_arr[batch].to(self.device)
+                batch_actions = actions_arr[batch].to(self.device)
+                batch_rewards = rewards_arr[batch].to(self.device)
 
-                batch_log_probs = log_probs_arr[batch]
-                batch_advantages = advantages_arr[batch]
+                batch_log_probs = log_probs_arr[batch].to(self.device)
+                batch_advantages = advantages_arr[batch].to(self.device)
 
-                batch_values = values_arr[batch]
-                batch_entropies = entropies_arr[batch]
+                batch_values = values_arr[batch].to(self.device)
+                batch_entropies = entropies_arr[batch].to(self.device)
 
-                self.policy.actor_optimizer.zero_grad()
-                self.policy.critic_optimizer.zero_grad()
+                self.policy.optimizer.zero_grad()
+                self.value_estimator.optimizer.zero_grad()
 
                 for minibatch in np.arange(start=0, stop=self.ppo_batch_size, step=self.ppo_minibatch_size):
                     start = minibatch
                     stop = start + self.ppo_minibatch_size
 
                     # Calculate ratio
-                    states = batch_states[start:stop].to(self.device)
-                    log_probs = batch_log_probs[start:stop].to(self.device).squeeze()
-                    actions = batch_actions[start:stop].to(self.device).squeeze()
+                    states = batch_states[start:stop]
+                    log_probs = batch_log_probs[start:stop].squeeze()
+                    actions = batch_actions[start:stop].squeeze()
 
-                    new_entropies, new_log_probs, new_values = self.policy.get_backprop_data(states, actions)
+                    new_entropies, new_log_probs = self.policy.get_backprop_data(states, actions)
+                    new_values = self.value_estimator.get_backprop_data(states, None)
 
                     prob_ratio = torch.exp(new_log_probs - log_probs)
 
                     # Normalized advantages
-                    advantages = batch_advantages[start:stop].to(self.device).squeeze()
+                    advantages = batch_advantages[start:stop].squeeze()
                     # advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-10)
 
                     mean_adv_std += advantages.std()
@@ -145,7 +166,7 @@ class PPO(Agent):
 
                     actor_loss = -torch.min(weighted_probs, weighted_clipped_probs).mean()
 
-                    values = batch_values[start:stop].to(self.device).squeeze()
+                    values = batch_values[start:stop].squeeze()
                     returns = advantages + values
                     # returns = (returns - returns.mean()) / (returns.std() + 1e-10)
 
@@ -159,8 +180,8 @@ class PPO(Agent):
 
                     loss.backward()
 
-                    torch.nn.utils.clip_grad_norm_(self.policy.actor.parameters(), self.policy_max_grad_norm)
-                    torch.nn.utils.clip_grad_norm_(self.policy.critic.parameters(), self.critic_max_grad_norm)
+                    torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.policy_max_grad_norm)
+                    torch.nn.utils.clip_grad_norm_(self.value_estimator.parameters(), self.critic_max_grad_norm)
 
                     rewards = batch_rewards[start:stop]
 
@@ -173,8 +194,8 @@ class PPO(Agent):
 
                     n_minibatch_iterations += 1
 
-                self.policy.actor_optimizer.step()
-                self.policy.critic_optimizer.step()
+                self.policy.optimizer.step()
+                self.value_estimator.optimizer.step()
 
                 n_iterations += 1
 
@@ -197,10 +218,10 @@ class PPO(Agent):
         mean_adv_max /= n_minibatch_iterations
 
         policy_after = torch.nn.utils.parameters_to_vector(
-            self.policy.actor.parameters()
+            self.policy.nn.parameters()
         ).cpu()
         critic_after = torch.nn.utils.parameters_to_vector(
-            self.policy.critic.parameters()
+            self.value_estimator.nn.parameters()
         ).cpu()
 
         # Metrics
@@ -223,6 +244,8 @@ class PPO(Agent):
         self.writer.add_scalar("Critic/mean_advantage_max", mean_adv_max, self.policy.learning_step)
 
         self.policy.learning_step += 1
+        self.value_estimator.learning_rate += 1
+        
         self._cnt_every_n += 1
 
         if self._cnt_every_n >= self.save_every_n:
@@ -234,10 +257,16 @@ class PPO(Agent):
             self.writer.add_scalar("env/" + k, v, self.policy.learning_step)
 
     def save(self, path: str):
-        self.policy.save(path)
+        path_ = pathlib.Path(path)
+
+        self.policy.save(path_ / "policy")
+        self.value_estimator.save(path_ / "value_estimator")
 
     def load(self, path: str):
-        self.policy.load(path)
+        path_ = pathlib.Path(path)
+
+        self.policy.load(path_ / "policy")
+        self.value_estimator.load(path_ / "value_estimator")
 
     def __del__(self):
         self.writer.close()

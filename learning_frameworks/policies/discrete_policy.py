@@ -11,11 +11,11 @@ class DiscretePolicy(Policy):
     def n_actions(self):
         return 1
 
-    def actor_forward(self, input_) -> torch.Tensor:
-        return torch.softmax(super().actor_forward(input_), dim=-1)
+    def forward(self, input_) -> torch.Tensor:
+        return torch.softmax(super().forward(input_), dim=-1)
 
     def act(self, input_, deterministic: bool) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        fw_result = self.actor_forward(input_)
+        fw_result = self.forward(input_)
 
         n_inputs = fw_result.shape[-1]
 
@@ -26,8 +26,8 @@ class DiscretePolicy(Policy):
             actions = distribution.sample()
             return actions, distribution.entropy(), distribution.log_prob(actions)
 
-    def get_backprop_data(self, observations, actions) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        fw_result = self.actor_forward(observations)
+    def get_backprop_data(self, observations, actions) -> Tuple[torch.Tensor, torch.Tensor]:
+        fw_result = self.forward(observations)
         distribution = torch.distributions.Categorical(fw_result)
 
-        return distribution.entropy(), distribution.log_prob(actions), self.critic_forward(observations)
+        return distribution.entropy(), distribution.log_prob(actions)

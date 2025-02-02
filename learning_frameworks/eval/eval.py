@@ -37,7 +37,7 @@ def run_eval(
             next_obs, r, terminated, truncated, _ = env.step(actions)
 
             if truncated:
-                r = agent.policy.critic_forward(next_obs).detach().numpy()
+                r = agent.value_estimator(next_obs).detach().numpy()
 
 
             all_r.append(r)

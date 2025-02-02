@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Callable
 
 import torch
 
@@ -10,9 +10,9 @@ class MultiDiscretePolicy(Policy):
     def n_actions(self):
         return len(self.bins)
 
-    def __init__(self, input_size: int, actor_layer_sizes: List[int], critic_layer_sizes: List[int],
-                 actor_lr: float, critic_lr: float, bins: List[int]):
-        super().__init__(input_size, sum(bins), actor_layer_sizes, critic_layer_sizes, actor_lr, critic_lr)
+    def __init__(self, bins: List[int], input_size: int, output_size: int, layer_sizes: List[int],
+                 activation_fn: Callable[[], torch.nn.Module], learning_rate: float, *args, **kwargs):
+        super().__init__(input_size, output_size, layer_sizes, activation_fn, learning_rate, *args, **kwargs)
         self.bins = bins
 
     def __get_distrib_probs_from_output(self, outputs) -> torch.Tensor:
@@ -70,7 +70,7 @@ class MultiDiscretePolicy(Policy):
 
 
     def act(self, input_, deterministic: bool) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        fw_result = self.actor_forward(input_)
+        fw_result = self.forward(input_)
 
         n_outputs = fw_result.shape[-1]
 
@@ -84,10 +84,10 @@ class MultiDiscretePolicy(Policy):
             return actions, distribution.entropy().sum(-1), distribution.log_prob(actions).sum(-1)
 
 
-    def get_backprop_data(self, observations, actions) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        fw_result = self.actor_forward(observations)
+    def get_backprop_data(self, observations, actions) -> Tuple[torch.Tensor, torch.Tensor]:
+        fw_result = self.forward(observations)
         distrib_probs = self.__get_distrib_probs_from_output(fw_result)
 
         distribution = torch.distributions.Categorical(distrib_probs)
 
-        return distribution.entropy().sum(-1), distribution.log_prob(actions).sum(-1), self.critic_forward(observations)
+        return distribution.entropy().sum(-1), distribution.log_prob(actions).sum(-1)

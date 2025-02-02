@@ -94,7 +94,7 @@ class ProcessManager:
             done = torch.logical_or(terminal, truncated)
 
             if truncated:
-                r = self.agent.policy.critic_forward(next_obs).detach()
+                r = self.agent.value_estimator(next_obs).detach()
 
             all_obs[i] = self._last_obs[i]
             all_rewards[i] = r
