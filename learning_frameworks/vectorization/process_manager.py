@@ -54,7 +54,7 @@ class ProcessManager:
         for to_proc_remote in self.to_proc_remotes:
             to_proc_remote.send({"name": "reset"})
 
-        all_obs = torch.FloatTensor(torch.zeros(size=(self.n_proc, self.obs_size)))
+        all_obs = torch.zeros(size=(self.n_proc, self.obs_size))
         all_info = []
 
         for i, to_proc_remote in enumerate(self.to_proc_remotes):
